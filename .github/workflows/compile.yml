@@ -1,7 +1,7 @@
 name: Compilar postmarketOS para gtowifi
 
 on:
-  workflow_dispatch: # Permite activar la compilación con el botón "Run workflow"
+  workflow_dispatch: # Activa la compilación con un botón
 
 jobs:
   build:
@@ -13,13 +13,13 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y python3-pip openssl git
 
-    - name: Clonar e instalar pmbootstrap de forma nativa
+    - name: Ejecutar instalacion nativa de pmbootstrap
       run: |
-        git clone https://postmarketos.org --depth 1
+        git clone https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git --depth 1
         cd pmbootstrap
         mkdir -p ~/.local/bin
         ln -s "$PWD/pmbootstrap.py" ~/.local/bin/pmbootstrap
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
+        ./pmbootstrap.py --version
 
     - name: Verificar versión de pmbootstrap
       run: |
