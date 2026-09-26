@@ -1,57 +1,108 @@
 name: Compilar postmarketOS para gtowifi
 
 on:
-  workflow_dispatch: # Activa la compilación con un botón
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-24.04
 
     steps:
-    - name: Actualizar sistema e instalar dependencias
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y python3-pip openssl git
+      - name: Instalar dependencias
+        shell: bash
+        run: |
+          set -euo pipefail
 
-    - name: Ejecutar instalacion nativa de pmbootstrap
-      run: |
-        git clone https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git --depth 1
-        cd pmbootstrap
-        mkdir -p ~/.local/bin
-        ln -s "$PWD/pmbootstrap.py" ~/.local/bin/pmbootstrap
-        ./pmbootstrap.py --version
+          sudo apt-get update
+          sudo apt-get install -y \
+            git \
+            python3 \
+            openssl
 
-    - name: Verificar versión de pmbootstrap
-      run: |
-        pmbootstrap --version
+      - name: Instalar pmbootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
 
-    - name: Inicializar configuración de pmbootstrap
-      run: |
-        mkdir -p ~/.config
-        # Genera el archivo de configuración con los parámetros válidos actuales
-        cat <<EOF > ~/.config/pmbootstrap.cfg
-        [pmbootstrap]
-        aports = /home/runner/work/pmbootstrap_work/cache_aports
-        work = /home/runner/work/pmbootstrap_work
-        jobs = 4
-        mirror_alpine = http://alpinelinux.org
-        device = samsung-gtowifi
-        ui = phosh
-        is_default_channel = True
-        EOF
-        # Inicializa pmbootstrap aplicando silenciosamente la configuración anterior
-        pmbootstrap init --jobs=4
+          git clone --depth=1 \
+            https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git \
+            "$HOME/pmbootstrap"
 
-    - name: Compilar imagen
-      run: |
-        pmbootstrap install --as-root
+          mkdir -p "$HOME/.local/bin"
 
-    - name: Exportar archivos .img
-      run: |
-        pmbootstrap export --dest /home/runner/work/export
+          ln -sf \
+            "$HOME/pmbootstrap/pmbootstrap.py" \
+            "$HOME/.local/bin/pmbootstrap"
 
-    - name: Subir imágenes como artefacto de descarga
-      uses: actions/upload-artifact@v4
-      with:
-        name: imagenes-samsung-gtowifi
-        path: /home/runner/work/export/*
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Verificar pmbootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          pmbootstrap --version
+
+      - name: Configurar pmbootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          WORK="$HOME/pmbootstrap-work"
+          APORTS="$WORK/cache_aports"
+
+          mkdir -p "$WORK"
+
+          pmbootstrap config work "$WORK"
+          pmbootstrap config aports "$APORTS"
+          pmbootstrap config device samsung-gtowifi
+          pmbootstrap config ui phosh
+          pmbootstrap config jobs 4
+          pmbootstrap config is_default_channel true
+
+      - name: Inicializar pmbootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          pmbootstrap init --shallow-initial-clone
+
+      - name: Verificar dispositivo
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          pmbootstrap status
+
+      - name: Compilar imagen
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          pmbootstrap install
+
+      - name: Exportar imagen
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p "$GITHUB_WORKSPACE/export"
+
+          pmbootstrap export "$GITHUB_WORKSPACE/export"
+
+      - name: Mostrar archivos generados
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          find "$GITHUB_WORKSPACE/export" \
+            -maxdepth 2 \
+            -type f \
+            -printf '%p\n'
+
+      - name: Subir imágenes como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: imagenes-samsung-gtowifi
+          path: ${{ github.workspace }}/export/
+          if-no-files-found: error
