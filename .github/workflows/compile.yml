@@ -1,3 +1,30 @@
+name: Compilar postmarketOS para gtowifi
+
+on:
+  workflow_dispatch: # Permite activar la compilación con el botón "Run workflow"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Actualizar sistema e instalar dependencias
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip openssl git
+
+    - name: Clonar e instalar pmbootstrap de forma nativa
+      run: |
+        git clone https://postmarketos.org --depth 1
+        cd pmbootstrap
+        mkdir -p ~/.local/bin
+        ln -s "$PWD/pmbootstrap.py" ~/.local/bin/pmbootstrap
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Verificar versión de pmbootstrap
+      run: |
+        pmbootstrap --version
+
     - name: Inicializar configuración de pmbootstrap
       run: |
         mkdir -p ~/.config
@@ -7,12 +34,12 @@
         aports = /home/runner/work/pmbootstrap_work/cache_aports
         work = /home/runner/work/pmbootstrap_work
         jobs = 4
-        mirror_alpine = http://dl-cdn.alpinelinux.org/alpine/
+        mirror_alpine = http://alpinelinux.org
         device = samsung-gtowifi
         ui = phosh
         is_default_channel = True
         EOF
-        # Ejecuta la inicialización sin preguntas adicionales usando la configuración creada
+        # Inicializa pmbootstrap aplicando silenciosamente la configuración anterior
         pmbootstrap init --jobs=4
 
     - name: Compilar imagen
