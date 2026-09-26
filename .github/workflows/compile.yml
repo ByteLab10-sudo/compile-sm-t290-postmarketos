@@ -1,35 +1,19 @@
-name: Compilar postmarketOS para gtowifi
-
-on:
-  workflow_dispatch: # Activa la compilación con un botón
-
-jobs:
-  build:
-    runs-on: ubuntu-24.04
-
-    steps:
-    - name: Actualizar sistema e instalar dependencias
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y python3-pip openssl git
-
-    - name: Clonar e instalar pmbootstrap de forma nativa
-      run: |
-        git clone https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git --depth 1
-        cd pmbootstrap
-        mkdir -p ~/.local/bin
-        ln -s "$PWD/pmbootstrap.py" ~/.local/bin/pmbootstrap
-        # Agrega la ruta al PATH del entorno de GitHub para que reconozca el comando
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-    - name: Verificar versión de pmbootstrap
-      run: |
-        pmbootstrap --version
-
-    - name: Inicializar pmbootstrap con interfaz Phosh
+    - name: Inicializar configuración de pmbootstrap
       run: |
         mkdir -p ~/.config
-        pmbootstrap init --mirror-alpine http://alpinelinux.org --work /home/runner/work/pmbootstrap_work --arch armv7 --device samsung-gtowifi --ui phosh
+        # Genera el archivo de configuración con los parámetros válidos actuales
+        cat <<EOF > ~/.config/pmbootstrap.cfg
+        [pmbootstrap]
+        aports = /home/runner/work/pmbootstrap_work/cache_aports
+        work = /home/runner/work/pmbootstrap_work
+        jobs = 4
+        mirror_alpine = http://dl-cdn.alpinelinux.org/alpine/
+        device = samsung-gtowifi
+        ui = phosh
+        is_default_channel = True
+        EOF
+        # Ejecuta la inicialización sin preguntas adicionales usando la configuración creada
+        pmbootstrap init --jobs=4
 
     - name: Compilar imagen
       run: |
