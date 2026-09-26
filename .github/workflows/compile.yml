@@ -1,0 +1,38 @@
+name: Compilar postmarketOS para gtowifi
+
+on:
+  workflow_dispatch: # Esto te permite activar la compilación con un botón
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Actualizar sistema e instalar dependencias
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip openssl git
+
+    - name: Instalar pmbootstrap desde el GitLab Oficial
+      run: |
+        pip install git+https://postmarketos.org
+
+    - name: Inicializar pmbootstrap con interfaz Phosh
+      run: |
+        mkdir -p ~/.config
+        # Utiliza los servidores de réplica oficiales para compilar el entorno archivado
+        pmbootstrap init --mirror-alpine http://alpinelinux.org --work /home/runner/work/pmbootstrap_work --arch armv7 --device samsung-gtowifi --ui phosh
+
+    - name: Compilar imagen
+      run: |
+        pmbootstrap install --as-root
+
+    - name: Exportar archivos .img
+      run: |
+        pmbootstrap export --dest /home/runner/work/export
+
+    - name: Subir imágenes como artefacto de descarga
+      uses: actions/upload-artifact@v4
+      with:
+        name: imagenes-samsung-gtowifi
+        path: /home/runner/work/export/*
