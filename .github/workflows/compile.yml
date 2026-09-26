@@ -15,7 +15,7 @@ jobs:
 
     - name: Instalar pmbootstrap desde el GitLab Oficial
       run: |
-        pip install git+https://postmarketos.org
+        pip install pmbootstrap
 
     - name: Inicializar pmbootstrap con interfaz Phosh
       run: |
