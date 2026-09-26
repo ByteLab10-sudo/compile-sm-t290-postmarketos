@@ -11,18 +11,20 @@ jobs:
       - name: Instalar dependencias
         shell: bash
         run: |
-          set -euo pipefail
+          set -e
 
           sudo apt-get update
           sudo apt-get install -y \
             git \
             python3 \
-            openssl
+            openssl \
+            tar \
+            ps
 
-      - name: Instalar pmbootstrap
+      - name: Descargar pmbootstrap
         shell: bash
         run: |
-          set -euo pipefail
+          set -e
 
           git clone --depth=1 \
             https://gitlab.postmarketos.org/postmarketOS/pmbootstrap.git \
@@ -39,52 +41,43 @@ jobs:
       - name: Verificar pmbootstrap
         shell: bash
         run: |
-          set -euo pipefail
-
+          set -e
           pmbootstrap --version
-
-      - name: Configurar pmbootstrap
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          WORK="$HOME/pmbootstrap-work"
-          APORTS="$WORK/cache_aports"
-
-          mkdir -p "$WORK"
-
-          pmbootstrap config work "$WORK"
-          pmbootstrap config aports "$APORTS"
-          pmbootstrap config device samsung-gtowifi
-          pmbootstrap config ui phosh
-          pmbootstrap config jobs 4
-          pmbootstrap config is_default_channel true
 
       - name: Inicializar pmbootstrap
         shell: bash
         run: |
-          set -euo pipefail
+          set -e
 
-          pmbootstrap init --shallow-initial-clone
+          mkdir -p "$HOME/.config"
 
-      - name: Verificar dispositivo
+          pmbootstrap init <<EOF
+          $HOME/pmbootstrap-work
+          edge
+          samsung-gtowifi
+          phosh
+          EOF
+
+      - name: Mostrar configuración
         shell: bash
         run: |
-          set -euo pipefail
+          set -e
 
-          pmbootstrap status
+          echo "===== CONFIG ====="
+          cat "$HOME/.config/pmbootstrap_v3.cfg"
+          echo "=================="
 
       - name: Compilar imagen
         shell: bash
         run: |
-          set -euo pipefail
+          set -e
 
-          pmbootstrap install
+          pmbootstrap install --no-cross
 
       - name: Exportar imagen
         shell: bash
         run: |
-          set -euo pipefail
+          set -e
 
           mkdir -p "$GITHUB_WORKSPACE/export"
 
@@ -93,14 +86,17 @@ jobs:
       - name: Mostrar archivos generados
         shell: bash
         run: |
-          set -euo pipefail
+          set -e
+
+          echo "===== ARCHIVOS ====="
 
           find "$GITHUB_WORKSPACE/export" \
-            -maxdepth 2 \
             -type f \
-            -printf '%p\n'
+            -print
 
-      - name: Subir imágenes como artefacto
+          echo "===================="
+
+      - name: Subir imágenes
         uses: actions/upload-artifact@v4
         with:
           name: imagenes-samsung-gtowifi
